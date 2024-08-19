@@ -41,6 +41,8 @@ static const char* kOpcodeNames[] = {
   "que",
   "rep",
   "cap",
+  "plb",
+  "nlb",
   "dot",
   "byte",
   "bol",
@@ -123,6 +125,8 @@ static void DumpRegexpAppending(Regexp* re, std::string* s) {
       for (int i = 0; i < re->nsub(); i++)
         DumpRegexpAppending(re->sub()[i], s);
       break;
+    case kRegexpPLB:
+    case kRegexpNLB:
     case kRegexpStar:
     case kRegexpPlus:
     case kRegexpQuest:

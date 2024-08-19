@@ -609,6 +609,26 @@ TEST(RE2, FullMatchWithNoArgs) {
   ASSERT_FALSE(RE2::FullMatch("hello!", "h.*o"));   // Must be anchored at end
 }
 
+TEST(RE2, LookBehindTest) {
+  ASSERT_TRUE(RE2::FullMatch("hello there", ".*there(?<=hello.*)"));
+  ASSERT_TRUE(RE2::PartialMatch("hello there", "(?<= )there"));
+
+    // Positive Lookbehind Tests
+  ASSERT_TRUE(RE2::FullMatch("hello there", ".*there(?<=hello.*)"));
+  ASSERT_TRUE(RE2::PartialMatch("hello there", "(?<= )there"));
+  ASSERT_TRUE(RE2::PartialMatch("12345", "(?<=123)45"));
+  ASSERT_TRUE(RE2::PartialMatch("abc123def", "(?<=abc)123"));
+  ASSERT_TRUE(RE2::PartialMatch("abc123def", "(?<=123)def"));
+  ASSERT_FALSE(RE2::PartialMatch("abc123def", "def(?<=def(?<!f))"));
+  ASSERT_TRUE(RE2::PartialMatch("word1 word2 word3", "word2(?<=word1.*)"));
+
+  // Negative Lookbehind Tests
+  ASSERT_TRUE(RE2::PartialMatch("abc123def", "(?<!def)123"));
+  ASSERT_FALSE(RE2::PartialMatch("abc123def", "(?<!abc)123"));
+  ASSERT_TRUE(RE2::PartialMatch("hello there", "(?<!goodbye )there"));
+  ASSERT_FALSE(RE2::FullMatch("goodbye", "good(?<!d)bye"));
+}
+
 TEST(RE2, PartialMatch) {
   ASSERT_TRUE(RE2::PartialMatch("x", "x"));
   ASSERT_TRUE(RE2::PartialMatch("hello", "h.*o"));

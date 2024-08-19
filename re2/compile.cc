@@ -133,6 +133,9 @@ class Compiler : public Regexp::Walker<Frag> {
   // Given fragment a, returns (a) capturing as \n.
   Frag Capture(Frag a, int n);
 
+  // Given fragment a, returns (?<=a) if lb>0 or (?<!a) otherwise.
+  Frag LookBehind(Frag a, int lb);
+
   // Given fragments a and b, returns ab; a|b
   Frag Cat(Frag a, Frag b);
   Frag Alt(Frag a, Frag b);
@@ -433,6 +436,22 @@ Frag Compiler::Capture(Frag a, int n) {
   PatchList::Patch(inst_.data(), a.end, id+1);
 
   return Frag(id, PatchList::Mk((id+1) << 1), a.nullable);
+}
+
+// Given fragment a, returns a fragment a lookbehind a.
+Frag Compiler::LookBehind(Frag a, int lb) {
+
+  int id = AllocInst(2);
+  if (id < 0)
+    return NoMatch();
+  inst_[id].InitLBWrite(lb, 0); // lb write instruction, goes to the LB automaton
+
+  Frag lb_automaton = Cat(DotStar(), a); // this is the automaton that will be used to check the lookbehind
+  PatchList::Patch(inst_.data(), lb_automaton.end, id); // patch end of a with lb write
+
+  inst_[id+1].InitLBCheck(lb, lb_automaton.begin, 0); // lb check instruction, goes to the main automaton
+
+  return Frag (id+1, PatchList::Mk((id+1) << 1), false);
 }
 
 // A Rune is a name for a Unicode code point.
@@ -953,6 +972,11 @@ Frag Compiler::PostVisit(Regexp* re, Frag, Frag, Frag* child_frags,
       return EndRange();
     }
 
+    case kRegexpPLB:
+      return LookBehind(child_frags[0], re->lb());
+    case kRegexpNLB:
+      return LookBehind(child_frags[0], re->lb());
+
     case kRegexpCapture:
       // If this is a non-capturing parenthesis -- (?:foo) --
       // just use the inner expression.
@@ -1013,6 +1037,8 @@ static bool IsAnchorStart(Regexp** pre, int depth) {
         sub->Decref();
       }
       break;
+    // case kRegexpPLB:  // @eg TODO: understand what this does, but not necessary for working
+    // case kRegexpNLB:
     case kRegexpCapture:
       sub = re->sub()[0]->Incref();
       if (IsAnchorStart(&sub, depth+1)) {
@@ -1060,6 +1086,8 @@ static bool IsAnchorEnd(Regexp** pre, int depth) {
         sub->Decref();
       }
       break;
+    // case kRegexpPLB:  // @eg TODO: same as other function, not strictly necessary
+    // case kRegexpNLB:
     case kRegexpCapture:
       sub = re->sub()[0]->Incref();
       if (IsAnchorEnd(&sub, depth+1)) {
