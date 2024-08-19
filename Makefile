@@ -362,7 +362,7 @@ else ifeq ($(shell uname),SunOS)
 else
 	@mkdir -p obj
 	@cp testinstall.cc obj/static-testinstall.cc
-	(cd obj && export PKG_CONFIG_PATH=$(DESTDIR)$(libdir)/pkgconfig; \
+	(cd obj && export PKG_CONFIG_PATH=$(DESTDIR)$(libdir)/pkgconfig:$(PKG_CONFIG_PATH); \
 	  $(CXX) static-testinstall.cc -o static-testinstall $(CXXFLAGS) $(LDFLAGS) \
 	  $$($(PKG_CONFIG) re2 --cflags) \
 	  $$($(PKG_CONFIG) re2 --libs | sed -e 's/-Wl / /g' | sed -e 's/-lre2/-l:libre2.a/'))
@@ -373,7 +373,7 @@ endif
 shared-testinstall:
 	@mkdir -p obj
 	@cp testinstall.cc obj/shared-testinstall.cc
-	(cd obj && export PKG_CONFIG_PATH=$(DESTDIR)$(libdir)/pkgconfig; \
+	(cd obj && export PKG_CONFIG_PATH=$(DESTDIR)$(libdir)/pkgconfig:$(PKG_CONFIG_PATH); \
 	  $(CXX) shared-testinstall.cc -o shared-testinstall $(CXXFLAGS) $(LDFLAGS) \
 	  $$($(PKG_CONFIG) re2 --cflags) \
 	  $$($(PKG_CONFIG) re2 --libs | sed -e 's/-Wl / /g'))
