@@ -58,7 +58,7 @@ NMFLAGS?=-p
 
 # Variables mandated by GNU, the arbiter of all good taste on the internet.
 # http://www.gnu.org/prep/standards/standards.html
-prefix=bin
+prefix=/usr/local
 exec_prefix=$(prefix)
 includedir=$(prefix)/include
 libdir=$(exec_prefix)/lib
@@ -362,7 +362,7 @@ else ifeq ($(shell uname),SunOS)
 else
 	@mkdir -p obj
 	@cp testinstall.cc obj/static-testinstall.cc
-	(cd obj && export PKG_CONFIG_PATH=$(DESTDIR)$(libdir)/pkgconfig:$(PKG_CONFIG_PATH); \
+	(cd obj && export PKG_CONFIG_PATH=$(DESTDIR)$(libdir)/pkgconfig; \
 	  $(CXX) static-testinstall.cc -o static-testinstall $(CXXFLAGS) $(LDFLAGS) \
 	  $$($(PKG_CONFIG) re2 --cflags) \
 	  $$($(PKG_CONFIG) re2 --libs | sed -e 's/-Wl / /g' | sed -e 's/-lre2/-l:libre2.a/'))
@@ -373,7 +373,7 @@ endif
 shared-testinstall:
 	@mkdir -p obj
 	@cp testinstall.cc obj/shared-testinstall.cc
-	(cd obj && export PKG_CONFIG_PATH=$(DESTDIR)$(libdir)/pkgconfig:$(PKG_CONFIG_PATH); \
+	(cd obj && export PKG_CONFIG_PATH=$(DESTDIR)$(libdir)/pkgconfig; \
 	  $(CXX) shared-testinstall.cc -o shared-testinstall $(CXXFLAGS) $(LDFLAGS) \
 	  $$($(PKG_CONFIG) re2 --cflags) \
 	  $$($(PKG_CONFIG) re2 --libs | sed -e 's/-Wl / /g'))
@@ -406,13 +406,3 @@ log:
 	echo '#' RE2 basic search tests built by make $@ >re2-search.txt
 	echo '#' $$(date) >>re2-search.txt
 	obj/test/search_test |grep -v '^PASS$$' >>re2-search.txt
-
-.PHONY: orpheus
-orpheus:
-	export PKG_CONFIG_PATH=$(DESTDIR)$(libdir)/pkgconfig:$(PKG_CONFIG_PATH); \
-	$(CXX) orpheus.cc -o orpheus $(CXXFLAGS) $(LDFLAGS) -lgtest -lgtest_main -I $(PWD) $(OFILES) $(TESTOFILES) \
-	`$(PKG_CONFIG) re2 --cflags` \
-	`$(PKG_CONFIG) re2 --libs | sed -e 's/-Wl / /g' | sed -e 's/-lre2/-l:libre2.a/'`
-
-.PHONY: mine
-mine: all install $(SOFILES) orpheus

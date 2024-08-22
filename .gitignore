@@ -4,5 +4,3 @@ core
 obj/
 benchlog.*
 user.bazelrc
-bin/
-orpheus
