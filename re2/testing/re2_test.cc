@@ -613,7 +613,7 @@ TEST(RE2, LookBehindTest) {
   ASSERT_TRUE(RE2::FullMatch("hello there", ".*there(?<=hello.*)"));
   ASSERT_TRUE(RE2::PartialMatch("hello there", "(?<= )there"));
 
-    // Positive Lookbehind Tests
+  // Positive Lookbehind Tests.
   ASSERT_TRUE(RE2::FullMatch("hello there", ".*there(?<=hello.*)"));
   ASSERT_TRUE(RE2::PartialMatch("hello there", "(?<= )there"));
   ASSERT_TRUE(RE2::PartialMatch("12345", "(?<=123)45"));
@@ -622,7 +622,7 @@ TEST(RE2, LookBehindTest) {
   ASSERT_FALSE(RE2::PartialMatch("abc123def", "def(?<=def(?<!f))"));
   ASSERT_TRUE(RE2::PartialMatch("word1 word2 word3", "word2(?<=word1.*)"));
 
-  // Negative Lookbehind Tests
+  // Negative Lookbehind Tests.
   ASSERT_TRUE(RE2::PartialMatch("abc123def", "(?<!def)123"));
   ASSERT_FALSE(RE2::PartialMatch("abc123def", "(?<!abc)123"));
   ASSERT_TRUE(RE2::PartialMatch("hello there", "(?<!goodbye )there"));

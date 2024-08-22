@@ -64,7 +64,7 @@ class Prog {
 
   std::vector<int> lb_starts;
   void lb_add_start(int pos) {
-    // add to the beginning of the list
+    // add to the beginning of the list.
     lb_starts.insert(lb_starts.begin(), pos);
   }
 
@@ -458,7 +458,7 @@ class Prog {
   bool reversed_;           // whether program runs backward over input
   bool did_flatten_;        // has Flatten been called?
   bool did_onepass_;        // has IsOnePass been called?
-  bool has_lookbehind_;     // has lookaround
+  bool has_lookbehind_;     // regexp contains lookbehinds
 
   int start_;               // entry point for program
   int start_unanchored_;    // unanchored entry point for program

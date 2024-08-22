@@ -134,9 +134,9 @@ enum RegexpOp {
   // Optionally, capturing name is name_.
   kRegexpCapture,
 
-  // Positive Lookbehind
+  // Positive Lookbehind.
   kRegexpPLB,
-  // Negative Lookbehind
+  // Negative Lookbehind.
   kRegexpNLB,
 
   // Matches any character.

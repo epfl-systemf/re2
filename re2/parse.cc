@@ -740,7 +740,7 @@ bool Regexp::ParseState::DoRightParen() {
   Regexp* re = r2;
   flags_ = re->parse_flags();
 
-  // Handle lookbehinds
+  // Handle lookbehinds.
   if (re->lb_ != 0) {
     // Rewrite LeftParen as lookbehind if needed.
     if (re->lb_ > 0) {

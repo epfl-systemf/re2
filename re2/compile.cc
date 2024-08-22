@@ -444,15 +444,15 @@ Frag Compiler::LookBehind(Frag a, int lb) {
   int id = AllocInst(2);
   if (id < 0)
     return NoMatch();
-  // LBWrite instruction, for the end of the LB automaton
+  // LBWrite instruction, for the end of the LB automaton.
   inst_[id].InitLBWrite(lb, 0); 
 
-  // The automaton used to check the lookbehind
+  // The automaton used to check the lookbehind.
   Frag lb_automaton = Cat(DotStar(), a);
-  // Add the LBWrite instruction at the end
+  // Add the LBWrite instruction at the end.
   PatchList::Patch(inst_.data(), lb_automaton.end, id); 
 
-  // LBCheck instruction, for the main automaton
+  // LBCheck instruction, for the main automaton.
   inst_[id+1].InitLBCheck(lb, lb_automaton.begin, 0); 
 
   return Frag (id+1, PatchList::Mk((id+1) << 1), false);

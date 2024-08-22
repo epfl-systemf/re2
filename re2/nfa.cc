@@ -51,7 +51,7 @@ class NFA {
   NFA(Prog* prog);
   ~NFA();
 
-  // stores the last matching index of each lookbehind
+  // Stores the last matching index of each lookbehind.
   std::vector<const char *> lb_table;
 
   // Searches for a matching string.
@@ -274,7 +274,7 @@ void NFA::AddToThreadq(Threadq* q, int id0, int c, absl::string_view context,
           break; // fail
         }
       }
-      // continue just like a NOP
+      // continue just like a NOP.
 
     case kInstNop:
       if (!ip->last())
@@ -603,7 +603,7 @@ bool NFA::Search(absl::string_view text, absl::string_view context,
           p = etext_;
       }
 
-      // Start threads for all lookbehinds positions
+      // Start threads for all lookbehinds positions.
       for (int i=0; i<prog_->lb_starts.size(); i++) {
         Thread* t = AllocThread();
         CopyCapture(t->capture, match_);
