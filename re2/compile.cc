@@ -438,7 +438,7 @@ Frag Compiler::Capture(Frag a, int n) {
   return Frag(id, PatchList::Mk((id+1) << 1), a.nullable);
 }
 
-// Given fragment a, returns a fragment a lookbehind a.
+// Given fragment a, returns a fragment for the lookbehind (?<=a).
 Frag Compiler::LookBehind(Frag a, int lb) {
 
   int id = AllocInst(2);
