@@ -51,7 +51,7 @@ class NFA {
   NFA(Prog* prog);
   ~NFA();
 
-  // add lb_table vector of ints to store all the lb starts
+  // stores the last matching index of each lookbehind
   std::vector<const char *> lb_table;
 
   // Searches for a matching string.
@@ -603,7 +603,7 @@ bool NFA::Search(absl::string_view text, absl::string_view context,
           p = etext_;
       }
 
-      // Start threads for all lbs positions
+      // Start threads for all lookbehinds positions
       for (int i=0; i<prog_->lb_starts.size(); i++) {
         Thread* t = AllocThread();
         CopyCapture(t->capture, match_);

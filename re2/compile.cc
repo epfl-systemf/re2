@@ -444,12 +444,16 @@ Frag Compiler::LookBehind(Frag a, int lb) {
   int id = AllocInst(2);
   if (id < 0)
     return NoMatch();
-  inst_[id].InitLBWrite(lb, 0); // lb write instruction, goes to the LB automaton
+  // LBWrite instruction, for the end of the LB automaton
+  inst_[id].InitLBWrite(lb, 0); 
 
-  Frag lb_automaton = Cat(DotStar(), a); // this is the automaton that will be used to check the lookbehind
-  PatchList::Patch(inst_.data(), lb_automaton.end, id); // patch end of a with lb write
+  // The automaton used to check the lookbehind
+  Frag lb_automaton = Cat(DotStar(), a);
+  // Add the LBWrite instruction at the end
+  PatchList::Patch(inst_.data(), lb_automaton.end, id); 
 
-  inst_[id+1].InitLBCheck(lb, lb_automaton.begin, 0); // lb check instruction, goes to the main automaton
+  // LBCheck instruction, for the main automaton
+  inst_[id+1].InitLBCheck(lb, lb_automaton.begin, 0); 
 
   return Frag (id+1, PatchList::Mk((id+1) << 1), false);
 }
@@ -1037,8 +1041,6 @@ static bool IsAnchorStart(Regexp** pre, int depth) {
         sub->Decref();
       }
       break;
-    // case kRegexpPLB:  // @eg TODO: understand what this does, but not necessary for working
-    // case kRegexpNLB:
     case kRegexpCapture:
       sub = re->sub()[0]->Incref();
       if (IsAnchorStart(&sub, depth+1)) {
@@ -1086,8 +1088,6 @@ static bool IsAnchorEnd(Regexp** pre, int depth) {
         sub->Decref();
       }
       break;
-    // case kRegexpPLB:  // @eg TODO: same as other function, not strictly necessary
-    // case kRegexpNLB:
     case kRegexpCapture:
       sub = re->sub()[0]->Incref();
       if (IsAnchorEnd(&sub, depth+1)) {

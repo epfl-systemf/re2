@@ -121,7 +121,7 @@ class Regexp::ParseState {
   bool DoLeftParen(absl::string_view name);
   bool DoLeftParenNoCapture();
 
-  // Processes a look-behind in the input.
+  // Processes a lookbehind in the input.
   // Pushes a marker onto the stack.
   bool DoPosLookBehind();
   bool DoNegLookBehind();

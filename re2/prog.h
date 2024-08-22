@@ -66,7 +66,6 @@ class Prog {
   void lb_add_start(int pos) {
     // add to the beginning of the list
     lb_starts.insert(lb_starts.begin(), pos);
-    // lb_starts.push_back(pos);
   }
 
   // Single instruction in regexp program.
