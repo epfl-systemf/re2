@@ -265,16 +265,21 @@ void NFA::AddToThreadq(Threadq* q, int id0, int c, absl::string_view context,
       break;
 
     case kInstLBCheck:
-      if (ip->lb() > 0) { // positive lb
+      if (ip->lb() > 0) {
+	// Positive Lookbehind.
         if (!(lb_table[ip->lb()] == &p[0])) {
-          break; // fail
+          break; // Lookbehind failed.
         }
       } else {
+	//Negative Lookbehind.
         if (!(lb_table[-ip->lb()] != &p[0])) {
-          break; // fail
+          break; // Lookbehind failed.
         }
       }
-      // continue just like a NOP.
+      // Lookbehind succeeded: continue.
+      a = {ip->out(), NULL};
+      goto Loop;
+
 
     case kInstNop:
       if (!ip->last())
@@ -604,11 +609,11 @@ bool NFA::Search(absl::string_view text, absl::string_view context,
       }
 
       // Start threads for all lookbehinds positions.
-      for (int i=0; i<prog_->lb_starts.size(); i++) {
+      for (auto & i : prog_->lb_starts) {
         Thread* t = AllocThread();
         CopyCapture(t->capture, match_);
         t->capture[0] = p;
-        AddToThreadq(runq, prog_->lb_starts[i], p < etext_ ? p[0] & 0xFF : -1, context, p,
+        AddToThreadq(runq, i, p < etext_ ? p[0] & 0xFF : -1, context, p,
                       t);
         Decref(t);
       }
