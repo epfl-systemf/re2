@@ -1,3 +1,33 @@
+# RE2-Lookbehinds
+
+This fork extends the [RE2](https://github.com/google/re2) regex engine with support for captureless lookbehinds.
+This implements the algorithm described in the [Linear Matching of JavaScript Regular Expressions](https://dl.acm.org/doi/10.1145/3656431) PLDI 2024 paper (section 4.1).
+
+A blog post by Erik Giorgis describing the changes made in this fork is available [here](https://systemf.epfl.ch/drafts/blog/re2_lookbehinds/).
+
+## Lookbehind Support
+
+Both positive lookbehinds (`(?<=r)`) and negative lookbehinds (`(?<!r)`) are supported.
+Nested lookbehinds are supported.
+
+The algorithm only supports *captureless* lookbehinds, meaning that if a positive lookbehind contains capture groups, these groups will not be defined. Capture groups outside of lookbehinds (e.g. in `(a)(?<=a)`) are supported.
+
+More generic algorithms (e.g. for capturing lookarounds and lookaheads) have been presented in [Linear Matching of JavaScript Regular Expressions](https://dl.acm.org/doi/10.1145/3656431).
+
+## Engines
+
+Currently, the lookbehind extension is only implemented for the [NFA engine](re2/nfa.cc).
+This means that all other engines (DFA, OnePass, BitState) are disabled when the regex being executed contains lookbehinds. 
+In the future, other engines could possibly be extended.
+
+## Other Implementations
+
+This extension of the NFA simulation algorithm for lookbehinds has also been implemented in [RegElk](https://github.com/epfl-systemf/RegElk) and in the [V8 Experimental](https://chromium-review.googlesource.com/c/v8/v8/+/5093860) linear JavaScript regex engine.
+
+
+
+# RE2 README
+
 This is the source code repository for RE2, a regular expression library.
 
 For documentation about how to install and use RE2,
