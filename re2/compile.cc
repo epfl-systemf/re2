@@ -133,6 +133,9 @@ class Compiler : public Regexp::Walker<Frag> {
   // Given fragment a, returns (a) capturing as \n.
   Frag Capture(Frag a, int n);
 
+  // Given fragment a, returns (?<=a) if lb>0 or (?<!a) otherwise.
+  Frag LookBehind(Frag a, int lb);
+
   // Given fragments a and b, returns ab; a|b
   Frag Cat(Frag a, Frag b);
   Frag Alt(Frag a, Frag b);
@@ -433,6 +436,26 @@ Frag Compiler::Capture(Frag a, int n) {
   PatchList::Patch(inst_.data(), a.end, id+1);
 
   return Frag(id, PatchList::Mk((id+1) << 1), a.nullable);
+}
+
+// Given fragment a, returns a fragment for the lookbehind (?<=a).
+Frag Compiler::LookBehind(Frag a, int lb) {
+
+  int id = AllocInst(2);
+  if (id < 0)
+    return NoMatch();
+  // LBWrite instruction, for the end of the LB automaton.
+  inst_[id].InitLBWrite(lb, 0);
+
+  // The automaton used to check the lookbehind.
+  Frag lb_automaton = Cat(DotStar(), a);
+  // Add the LBWrite instruction at the end.
+  PatchList::Patch(inst_.data(), lb_automaton.end, id);
+
+  // LBCheck instruction, for the main automaton.
+  inst_[id+1].InitLBCheck(lb, lb_automaton.begin, 0);
+
+  return Frag (id+1, PatchList::Mk((id+1) << 1), false);
 }
 
 // A Rune is a name for a Unicode code point.
@@ -952,6 +975,11 @@ Frag Compiler::PostVisit(Regexp* re, Frag, Frag, Frag* child_frags,
       }
       return EndRange();
     }
+
+    case kRegexpPLB:
+      return LookBehind(child_frags[0], re->lb());
+    case kRegexpNLB:
+      return LookBehind(child_frags[0], re->lb());
 
     case kRegexpCapture:
       // If this is a non-capturing parenthesis -- (?:foo) --

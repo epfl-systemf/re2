@@ -37,6 +37,8 @@ enum InstOp {
   kInstMatch,        // found a match!
   kInstNop,          // no-op; occasionally unavoidable
   kInstFail,         // never match; occasionally unavoidable
+  kInstLBWrite,      // write to lookbehind buffer
+  kInstLBCheck,      // read from lookbehind buffer
   kNumInst,
 };
 
@@ -60,6 +62,12 @@ class Prog {
   Prog();
   ~Prog();
 
+  std::vector<int> lb_starts;
+  void lb_add_start(int pos) {
+    // add to the beginning of the list.
+    lb_starts.insert(lb_starts.begin(), pos);
+  }
+
   // Single instruction in regexp program.
   class Inst {
    public:
@@ -74,6 +82,8 @@ class Prog {
     void InitAlt(uint32_t out, uint32_t out1);
     void InitByteRange(int lo, int hi, int foldcase, uint32_t out);
     void InitCapture(int cap, uint32_t out);
+    void InitLBWrite(int lb, uint32_t out);
+    void InitLBCheck(int lb, uint32_t out, uint32_t out1);
     void InitEmptyWidth(EmptyOp empty, uint32_t out);
     void InitMatch(int id);
     void InitNop(uint32_t out);
@@ -81,16 +91,20 @@ class Prog {
 
     // Getters
     int id(Prog* p) { return static_cast<int>(this - p->inst_.data()); }
-    InstOp opcode() { return static_cast<InstOp>(out_opcode_ & 7); }
-    int last() { return (out_opcode_ >> 3) & 1; }
-    int out() { return out_opcode_ >> 4; }
+    InstOp opcode() { return static_cast<InstOp>(out_opcode_ & 15); }
+    int last() { return (out_opcode_ >> 4) & 1; }
+    int out() { return out_opcode_ >> 5; }
     int out1() {
-      ABSL_DCHECK(opcode() == kInstAlt || opcode() == kInstAltMatch);
+      ABSL_DCHECK(opcode() == kInstAlt || opcode() == kInstAltMatch || opcode() == kInstLBCheck);
       return out1_;
     }
     int cap() {
       ABSL_DCHECK_EQ(opcode(), kInstCapture);
       return cap_;
+    }
+    int lb() {
+      ABSL_DCHECK(opcode() == kInstLBWrite || opcode() == kInstLBCheck);
+      return lb_;
     }
     int lo() {
       ABSL_DCHECK_EQ(opcode(), kInstByteRange);
@@ -141,21 +155,25 @@ class Prog {
 
    private:
     void set_opcode(InstOp opcode) {
-      out_opcode_ = (out()<<4) | (last()<<3) | opcode;
+      out_opcode_ = (out()<<5) | (last()<<4) | opcode;
     }
 
     void set_last() {
-      out_opcode_ = (out()<<4) | (1<<3) | opcode();
+      out_opcode_ = (out()<<5) | (1<<4) | opcode();
     }
 
     void set_out(int out) {
-      out_opcode_ = (out<<4) | (last()<<3) | opcode();
+      out_opcode_ = (out<<5) | (last()<<4) | opcode();
+    }
+    void set_out1(int out) {
+      out1_ = (out<<5) | (last()<<4) | opcode();
     }
 
     void set_out_opcode(int out, InstOp opcode) {
-      out_opcode_ = (out<<4) | (last()<<3) | opcode;
+      out_opcode_ = (out<<5) | (last()<<4) | opcode;
     }
 
+    int32_t lb_;           // opcode == kInstLBCheck or kInstLBWrite
     uint32_t out_opcode_;  // 28 bits: out, 1 bit: last, 3 (low) bits: opcode
     union {                // additional instruction arguments:
       uint32_t out1_;      // opcode == kInstAlt
@@ -243,6 +261,8 @@ class Prog {
   int bytemap_range() { return bytemap_range_; }
   const uint8_t* bytemap() { return bytemap_; }
   bool can_prefix_accel() { return prefix_size_ != 0; }
+  bool has_lookbehind() { return has_lookbehind_; }
+  void set_lookbehind() { has_lookbehind_ = true; }
 
   // Accelerates to the first likely occurrence of the prefix.
   // Returns a pointer to the first byte or NULL if not found.
@@ -438,6 +458,7 @@ class Prog {
   bool reversed_;           // whether program runs backward over input
   bool did_flatten_;        // has Flatten been called?
   bool did_onepass_;        // has IsOnePass been called?
+  bool has_lookbehind_;     // regexp contains lookbehinds
 
   int start_;               // entry point for program
   int start_unanchored_;    // unanchored entry point for program

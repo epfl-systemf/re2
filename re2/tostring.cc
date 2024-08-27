@@ -111,6 +111,15 @@ int ToStringWalker::PreVisit(Regexp* re, int parent_arg, bool* stop) {
       nprec = PrecParen;
       break;
 
+    case kRegexpPLB:
+      t_->append("(?<=");
+      nprec = PrecParen;
+      break;
+    case kRegexpNLB:
+      t_->append("(?<!");
+      nprec = PrecParen;
+      break;
+
     case kRegexpStar:
     case kRegexpPlus:
     case kRegexpQuest:
@@ -283,6 +292,8 @@ int ToStringWalker::PostVisit(Regexp* re, int parent_arg, int pre_arg,
       break;
     }
 
+    case kRegexpPLB:
+    case kRegexpNLB:
     case kRegexpCapture:
       t_->append(")");
       break;

@@ -56,6 +56,19 @@ void Prog::Inst::InitCapture(int cap, uint32_t out) {
   cap_ = cap;
 }
 
+void Prog::Inst::InitLBWrite(int lb, uint32_t out) {
+  ABSL_DCHECK_EQ(out_opcode_, 0);
+  set_out_opcode(out, kInstLBWrite);
+  lb_ = lb;
+}
+
+void Prog::Inst::InitLBCheck(int lb, uint32_t lb_automaton, uint32_t out) {
+  ABSL_DCHECK_EQ(out_opcode_, 0);
+  set_out_opcode(out, kInstLBCheck);
+  lb_ = lb;
+  out1_ = lb_automaton;
+}
+
 void Prog::Inst::InitEmptyWidth(EmptyOp empty, uint32_t out) {
   ABSL_DCHECK_EQ(out_opcode_, uint32_t{0});
   set_out_opcode(out, kInstEmptyWidth);
@@ -97,6 +110,12 @@ std::string Prog::Inst::Dump() {
     case kInstCapture:
       return absl::StrFormat("capture %d -> %d", cap_, out());
 
+    case kInstLBWrite:
+      return absl::StrFormat("lbwrite %d", lb_);
+
+    case kInstLBCheck:
+      return absl::StrFormat("lbcheck %d -> %d", lb_, out());
+
     case kInstEmptyWidth:
       return absl::StrFormat("emptywidth %#x -> %d",
                              static_cast<int>(empty_), out());
@@ -118,6 +137,7 @@ Prog::Prog()
     reversed_(false),
     did_flatten_(false),
     did_onepass_(false),
+    has_lookbehind_(false),
     start_(0),
     start_unanchored_(0),
     size_(0),
@@ -214,6 +234,8 @@ static bool IsMatch(Prog* prog, Prog::Inst* ip) {
       case kInstByteRange:
       case kInstFail:
       case kInstEmptyWidth:
+      case kInstLBWrite:
+      case kInstLBCheck:
         return false;
 
       case kInstCapture:
@@ -616,6 +638,9 @@ void Prog::Flatten() {
     if (ip->opcode() != kInstAltMatch)  // handled in EmitList()
       ip->set_out(flatmap[ip->out()]);
     inst_count_[ip->opcode()]++;
+    if (ip->opcode() == kInstLBCheck) {
+      lb_add_start(flatmap[ip->out1()]);
+    }
   }
 
 #if !defined(NDEBUG)
@@ -711,12 +736,26 @@ void Prog::MarkSuccessors(SparseArray<int>* rootmap,
         id = ip->out();
         goto Loop;
 
+      case kInstLBCheck:
+        set_lookbehind();
+        // mark this as a root
+        if (!rootmap->has_index(ip->out()))
+          rootmap->set_new(ip->out(), rootmap->size());
+        // mark the writeLB as a root
+        if (!rootmap->has_index(ip->out1()))
+          rootmap->set_new(ip->out1(), rootmap->size());
+        stk->push_back(ip->out1());
+        id = ip->out();
+
+        goto Loop;
+
       case kInstNop:
         id = ip->out();
         goto Loop;
 
       case kInstMatch:
       case kInstFail:
+      case kInstLBWrite:
         break;
     }
   }
@@ -748,6 +787,7 @@ void Prog::MarkDominator(int root, SparseArray<int>* rootmap,
         ABSL_LOG(DFATAL) << "unhandled opcode: " << ip->opcode();
         break;
 
+      case kInstLBCheck:
       case kInstAltMatch:
       case kInstAlt:
         stk->push_back(ip->out1());
@@ -765,6 +805,7 @@ void Prog::MarkDominator(int root, SparseArray<int>* rootmap,
 
       case kInstMatch:
       case kInstFail:
+      case kInstLBWrite:
         break;
     }
   }
@@ -835,10 +876,18 @@ void Prog::EmitList(int root, SparseArray<int>* rootmap,
         flat->back().set_out(rootmap->get_existing(ip->out()));
         break;
 
+      case kInstLBCheck:
+        flat->emplace_back();
+        memmove(&flat->back(), ip, sizeof *ip);
+        flat->back().set_out(rootmap->get_existing(ip->out()));
+        flat->back().out1_ = rootmap->get_existing(ip->out1());
+        break;
+
       case kInstNop:
         id = ip->out();
         goto Loop;
 
+      case kInstLBWrite:
       case kInstMatch:
       case kInstFail:
         flat->emplace_back();

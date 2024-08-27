@@ -370,6 +370,8 @@ static bool TopEqual(Regexp* a, Regexp* b) {
     case kRegexpWordBoundary:
     case kRegexpNoWordBoundary:
     case kRegexpBeginText:
+    case kRegexpPLB:
+    case kRegexpNLB:
       return true;
 
     case kRegexpEndText:
@@ -443,6 +445,8 @@ bool Regexp::Equal(Regexp* a, Regexp* b) {
     case kRegexpPlus:
     case kRegexpQuest:
     case kRegexpRepeat:
+    case kRegexpPLB:
+    case kRegexpNLB:
     case kRegexpCapture:
       break;
 
@@ -480,6 +484,8 @@ bool Regexp::Equal(Regexp* a, Regexp* b) {
       case kRegexpQuest:
       case kRegexpRepeat:
       case kRegexpCapture:
+      case kRegexpPLB:
+      case kRegexpNLB:
         a2 = a->sub()[0];
         b2 = b->sub()[0];
         if (!TopEqual(a2, b2))

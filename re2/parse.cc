@@ -121,6 +121,11 @@ class Regexp::ParseState {
   bool DoLeftParen(absl::string_view name);
   bool DoLeftParenNoCapture();
 
+  // Processes a lookbehind in the input.
+  // Pushes a marker onto the stack.
+  bool DoPosLookBehind();
+  bool DoNegLookBehind();
+
   // Processes a vertical bar in the input.
   bool DoVerticalBar();
 
@@ -181,6 +186,7 @@ private:
   Regexp* stacktop_;
   int ncap_;  // number of capturing parens seen
   int rune_max_;  // maximum char value for this encoding
+  int nlb_;  // number of lookbehinds seen
 
   ParseState(const ParseState&) = delete;
   ParseState& operator=(const ParseState&) = delete;
@@ -189,12 +195,14 @@ private:
 // Pseudo-operators - only on parse stack.
 const RegexpOp kLeftParen = static_cast<RegexpOp>(kMaxRegexpOp+1);
 const RegexpOp kVerticalBar = static_cast<RegexpOp>(kMaxRegexpOp+2);
+const RegexpOp kPosLookBehind = static_cast<RegexpOp>(kMaxRegexpOp+3);
+const RegexpOp kNegLookBehind = static_cast<RegexpOp>(kMaxRegexpOp+4);
 
 Regexp::ParseState::ParseState(ParseFlags flags,
                                absl::string_view whole_regexp,
                                RegexpStatus* status)
   : flags_(flags), whole_regexp_(whole_regexp),
-    status_(status), stacktop_(NULL), ncap_(0) {
+    status_(status), stacktop_(NULL), ncap_(0), nlb_(0) {
   if (flags_ & Latin1)
     rune_max_ = 0xFF;
   else
@@ -645,6 +653,18 @@ bool Regexp::ParseState::DoLeftParenNoCapture() {
   return PushRegexp(re);
 }
 
+bool Regexp::ParseState::DoPosLookBehind() {
+  Regexp* re = new Regexp(kLeftParen, flags_);
+  re->lb_ = ++nlb_;
+  return PushRegexp(re);
+}
+
+bool Regexp::ParseState::DoNegLookBehind() {
+  Regexp* re = new Regexp(kLeftParen, flags_);
+  re->lb_ = -(++nlb_);
+  return PushRegexp(re);
+}
+
 // Processes a vertical bar in the input.
 bool Regexp::ParseState::DoVerticalBar() {
   MaybeConcatString(-1, NoParseFlags);
@@ -719,6 +739,23 @@ bool Regexp::ParseState::DoRightParen() {
   // Restore flags from when paren opened.
   Regexp* re = r2;
   flags_ = re->parse_flags();
+
+  // Handle lookbehinds.
+  if (re->lb_ != 0) {
+    // Rewrite LeftParen as lookbehind if needed.
+    if (re->lb_ > 0) {
+      re->op_ = kRegexpPLB;
+      re->AllocSub(1);
+      re->sub()[0] = FinishRegexp(r1);
+      re->simple_ = re->ComputeSimple();
+    } else {
+      re->op_ = kRegexpNLB;
+      re->AllocSub(1);
+      re->sub()[0] = FinishRegexp(r1);
+      re->simple_ = re->ComputeSimple();
+    }
+    return PushRegexp(re);
+  }
 
   // Rewrite LeftParen as capture if needed.
   if (re->cap_ > 0) {
@@ -2307,6 +2344,19 @@ Regexp* Regexp::Parse(absl::string_view s, ParseFlags global_flags,
       }
 
       case '(':
+        if (t.size() > 4 && t[1] == '?' && t[2] == '<' && (t[3] == '=' || t[3] == '!')) {
+          if (t[3] == '=') {
+            if (!ps.DoPosLookBehind()) {
+              return NULL;
+            }
+          } else {
+            if (!ps.DoNegLookBehind()) {
+              return NULL;
+            }
+          }
+          t.remove_prefix(4);
+          break;
+        }
         // "(?" introduces Perl escape.
         if ((ps.flags() & PerlX) && (t.size() >= 2 && t[1] == '?')) {
           // Flag changes and non-capturing groups.

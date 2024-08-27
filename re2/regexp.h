@@ -134,6 +134,11 @@ enum RegexpOp {
   // Optionally, capturing name is name_.
   kRegexpCapture,
 
+  // Positive Lookbehind.
+  kRegexpPLB,
+  // Negative Lookbehind.
+  kRegexpNLB,
+
   // Matches any character.
   kRegexpAnyChar,
 
@@ -353,6 +358,10 @@ class Regexp {
   int cap() {
     ABSL_DCHECK_EQ(op_, kRegexpCapture);
     return cap_;
+  }
+  int lb() {
+    ABSL_DCHECK(op_ == kRegexpPLB || op_ == kRegexpNLB);
+    return lb_;
   }
   const std::string* name() {
     ABSL_DCHECK_EQ(op_, kRegexpCapture);
@@ -603,8 +612,9 @@ class Regexp {
       int max_;
       int min_;
     };
-    struct {  // Capture
+    struct {  // Capture or lookbehind
       int cap_;
+      int lb_;
       std::string* name_;
     };
     struct {  // LiteralString

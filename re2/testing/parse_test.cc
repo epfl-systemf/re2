@@ -178,6 +178,12 @@ static Test tests[] = {
   { "abcde", "str{abcde}" },
   { "[Aa][Bb]cd", "cat{strfold{ab}str{cd}}" },
 
+  // Lookbehinds
+  { "ab(?<=cde)", "cat{str{ab}plb{str{cde}}}" },
+  { "ab(?<!cde)", "cat{str{ab}nlb{str{cde}}}" },
+  { "ab(?<=c(?<=d)e)", "cat{str{ab}plb{cat{lit{c}plb{lit{d}}lit{e}}}}" },
+  { "ab(?<=c(?<!d)e)", "cat{str{ab}plb{cat{lit{c}nlb{lit{d}}lit{e}}}}" },
+
   // Reported bug involving \n leaking in despite use of NeverNL.
   { "[^ ]", "cc{0-0x9 0xb-0x1f 0x21-0x10ffff}", TestZeroFlags },
   { "[^ ]", "cc{0-0x9 0xb-0x1f 0x21-0x10ffff}", Regexp::FoldCase },
@@ -572,15 +578,6 @@ TEST(LookAround, ErrorArgs) {
   EXPECT_EQ(status.code(), kRegexpBadPerlOp);
   EXPECT_EQ(status.error_arg(), "(?!");
 
-  re = Regexp::Parse("(?<=foo).*", Regexp::LikePerl, &status);
-  EXPECT_TRUE(re == NULL);
-  EXPECT_EQ(status.code(), kRegexpBadPerlOp);
-  EXPECT_EQ(status.error_arg(), "(?<=");
-
-  re = Regexp::Parse("(?<!foo).*", Regexp::LikePerl, &status);
-  EXPECT_TRUE(re == NULL);
-  EXPECT_EQ(status.code(), kRegexpBadPerlOp);
-  EXPECT_EQ(status.error_arg(), "(?<!");
 }
 
 }  // namespace re2

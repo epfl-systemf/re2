@@ -51,6 +51,9 @@ class NFA {
   NFA(Prog* prog);
   ~NFA();
 
+  // Stores the last matching index of each lookbehind.
+  std::vector<const char *> lb_table;
+
   // Searches for a matching string.
   //   * If anchored is true, only considers matches starting at offset.
   //     Otherwise finds lefmost match at or after offset.
@@ -133,6 +136,7 @@ class NFA {
 
 NFA::NFA(Prog* prog) {
   prog_ = prog;
+  lb_table = std::vector<const char*>(prog->lb_starts.size());
   start_ = prog_->start();
   ncapture_ = 0;
   longest_ = false;
@@ -144,6 +148,7 @@ NFA::NFA(Prog* prog) {
   // See NFA::AddToThreadq() for why this is so.
   int nstack = 2*prog_->inst_count(kInstCapture) +
                prog_->inst_count(kInstEmptyWidth) +
+               prog_->inst_count(kInstLBCheck) +
                prog_->inst_count(kInstNop) + 1;  // + 1 for start inst
   stack_ = PODArray<AddState>(nstack);
   freelist_ = NULL;
@@ -254,6 +259,27 @@ void NFA::AddToThreadq(Threadq* q, int id0, int c, absl::string_view context,
       ABSL_DCHECK(!ip->last());
       a = {id+1, NULL};
       goto Loop;
+
+    case kInstLBWrite:
+      lb_table[std::abs(ip->lb())] = p;
+      break;
+
+    case kInstLBCheck:
+      if (ip->lb() > 0) {
+	// Positive Lookbehind.
+        if (!(lb_table[ip->lb()] == &p[0])) {
+          break; // Lookbehind failed.
+        }
+      } else {
+	//Negative Lookbehind.
+        if (!(lb_table[-ip->lb()] != &p[0])) {
+          break; // Lookbehind failed.
+        }
+      }
+      // Lookbehind succeeded: continue.
+      a = {ip->out(), NULL};
+      goto Loop;
+
 
     case kInstNop:
       if (!ip->last())
@@ -575,11 +601,21 @@ bool NFA::Search(absl::string_view text, absl::string_view context,
       // Try to use prefix accel (e.g. memchr) to skip ahead.
       // The search must be unanchored and there must be zero
       // possible matches already.
-      if (!anchored && runq->size() == 0 &&
+      if (!prog_->has_lookbehind() && !anchored && runq->size() == 0 &&
           p < etext_ && prog_->can_prefix_accel()) {
         p = reinterpret_cast<const char*>(prog_->PrefixAccel(p, etext_ - p));
         if (p == NULL)
           p = etext_;
+      }
+
+      // Start threads for all lookbehinds positions.
+      for (auto & i : prog_->lb_starts) {
+        Thread* t = AllocThread();
+        CopyCapture(t->capture, match_);
+        t->capture[0] = p;
+        AddToThreadq(runq, i, p < etext_ ? p[0] & 0xFF : -1, context, p,
+                      t);
+        Decref(t);
       }
 
       Thread* t = AllocThread();

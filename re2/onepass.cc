@@ -447,6 +447,11 @@ bool Prog::IsOnePass() {
           ABSL_LOG(DFATAL) << "unhandled opcode: " << ip->opcode();
           break;
 
+        case kInstLBWrite:
+        case kInstLBCheck:
+          // Not onepass
+          goto fail;
+
         case kInstAltMatch:
           // TODO(rsc): Ignoring kInstAltMatch optimization.
           // Should implement it in this engine, but it's subtle.
