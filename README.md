@@ -1,9 +1,9 @@
 # RE2-Lookbehinds
 
-This fork extends the [RE2](https://github.com/google/re2) regex engine with support for captureless lookbehinds.
+This fork extends the [RE2](https://github.com/google/re2) regex engine with support for captureless lookbehinds, while preserving the time and memory complexity.
 This implements the algorithm described in the [Linear Matching of JavaScript Regular Expressions](https://dl.acm.org/doi/10.1145/3656431) PLDI 2024 paper (section 4.1).
 
-A blog post by Erik Giorgis describing the changes made in this fork is available [here](https://systemf.epfl.ch/drafts/blog/re2_lookbehinds/).
+A blog post by Erik Giorgis describing the changes made in this fork is available [here](https://systemf.epfl.ch/blog/re2-lookbehinds/).
 
 ## Lookbehind Support
 
